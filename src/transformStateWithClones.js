@@ -4,65 +4,38 @@
  * @param {Object} state
  * @param {Object[]} actions
  *
- * @return {string}
+ * @return {Object[]}
  */
 function transformStateWithClones(state, actions) {
-  const stateCopy = { ...state };
-  const actionsHistory = [{ ...stateCopy }];
-  let status = false;
+  let stateCopy = { ...state };
+  const actionsHistory = [];
 
   for (const action of actions) {
-    let changes = { ...actionsHistory.at(-1) };
-    let wasChanged = false;
-
     switch (action.type) {
       case 'addProperties':
-        for (const act in action.extraData) {
-          if (actionsHistory.length === 1 && !status) {
-            actionsHistory[0][act] = action.extraData[act];
-            wasChanged = true;
-          } else {
-            changes[act] = action.extraData[act];
-          }
-        }
+        stateCopy = { ...stateCopy, ...action.extraData };
+        actionsHistory.push({ ...stateCopy });
 
-        if (wasChanged) {
-          status = true;
-        }
-
-        if (actionsHistory.length > 1) {
-          actionsHistory.push({ ...changes });
-          changes = {};
-        }
-        continue;
+        break;
 
       case 'clear':
-        if (actionsHistory.length === 1 && !status) {
-          actionsHistory[0] = {};
-          status = true;
-        } else {
-          actionsHistory.push({});
-        }
-        continue;
+        stateCopy = {};
+        actionsHistory.push({});
+
+        break;
 
       case 'removeProperties':
         for (const key of action.keysToRemove) {
-          if (key in changes) {
-            delete changes[key];
+          if (key in stateCopy) {
+            delete stateCopy[key];
           }
         }
+        actionsHistory.push({ ...stateCopy });
 
-        if (actionsHistory.length === 1 && !status) {
-          actionsHistory[0] = { ...changes };
-          status = true;
-        } else {
-          actionsHistory.push({ ...changes });
-          changes = {};
-        }
-        continue;
+        break;
 
       default:
-        return 'Unknown action type: ' + action.type;
+        throw new Error('Unknown action type: ' + action.type);
     }
   }
 
